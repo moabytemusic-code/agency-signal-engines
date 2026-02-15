@@ -121,6 +121,9 @@ export default function PricingPage() {
                     <Link href="/dashboard" className="text-blue-600 hover:text-blue-800 font-medium underline underline-offset-4">
                         ← Back to Dashboard
                     </Link>
+                    <Link href="/" className="ml-8 text-gray-500 hover:text-gray-800 font-medium underline underline-offset-4">
+                        Back to Home
+                    </Link>
                 </div>
             </div>
         </div>
