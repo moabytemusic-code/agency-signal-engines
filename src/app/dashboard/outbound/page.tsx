@@ -4,10 +4,11 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import Link from "next/link";
-import { Plus, MessageSquare, Calendar, CheckCircle, XCircle, MoreHorizontal, Copy, Send, History, Zap } from "lucide-react";
+import { Plus, MessageSquare, Calendar, CheckCircle, XCircle, MoreHorizontal, Copy, Send, History, Zap, Settings } from "lucide-react";
 import { getPlanLimits, PLAN_LIMITS } from "@/lib/plans";
 import { Plan } from "@/lib/types";
 
+// Types
 type Prospect = {
     id: string;
     name: string;
@@ -29,6 +30,8 @@ type Log = {
     sent_at: string;
 };
 
+type Tone = "DIRECT" | "FRIENDLY" | "AUTHORITATIVE";
+
 const STATUS_COLUMNS = [
     { id: 'new', label: 'New', color: 'bg-slate-100 border-slate-200' },
     { id: 'connected', label: 'Connected', color: 'bg-blue-50 border-blue-100' },
@@ -42,6 +45,9 @@ export default function OutboundDashboard() {
     const [prospects, setProspects] = useState<Prospect[]>([]);
     const [loading, setLoading] = useState(true);
     const [usage, setUsage] = useState({ used: 0, limit: 0, plan: 'FREE' as Plan });
+
+    // Tone State
+    const [tone, setTone] = useState<Tone>("DIRECT");
 
     const [messageModal, setMessageModal] = useState<{ isOpen: boolean, prospect: Prospect | null, content: string, type: string }>({
         isOpen: false, prospect: null, content: "", type: ""
@@ -102,7 +108,14 @@ export default function OutboundDashboard() {
 
     useEffect(() => {
         fetchData();
+        const savedTone = localStorage.getItem("outbound_tone") as Tone;
+        if (savedTone) setTone(savedTone);
     }, []);
+
+    const handleToneChange = (t: Tone) => {
+        setTone(t);
+        localStorage.setItem("outbound_tone", t);
+    };
 
     // Update Status
     const handleStatusChange = async (prospectId: string, newStatus: string) => {
@@ -155,7 +168,7 @@ export default function OutboundDashboard() {
             const res = await fetch("/api/outbound/generate-message", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prospect_id: prospect.id, type })
+                body: JSON.stringify({ prospect_id: prospect.id, type, tone }) // Pass tone
             });
 
             if (!res.ok) throw new Error("Generation failed");
@@ -176,7 +189,7 @@ export default function OutboundDashboard() {
         const res = await fetch("/api/outbound/send-email", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ prospect_id: prospectId, type })
+            body: JSON.stringify({ prospect_id: prospectId, type, tone }) // Pass tone
         });
 
         if (!res.ok) {
@@ -226,12 +239,11 @@ export default function OutboundDashboard() {
             type = 'email_followup';
         }
 
-        if (!confirm(`Are you sure you want to send a '${type}' email to ${prospect.email}?`)) return;
+        if (!confirm(`Are you sure you want to send a '${type}' email to ${prospect.email} with ${tone} tone?`)) return;
 
         setSending(true);
         try {
             await sendEmailAPI(prospect.id, type);
-            // Inline success feedback? Alert implies success
             alert(`Email sent successfully to ${prospect.name}!`);
             fetchData(); // Refresh usage and list
         } catch (e) {
@@ -279,6 +291,20 @@ export default function OutboundDashboard() {
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-6 items-end md:items-center w-full md:w-auto">
+
+                        {/* Tone Selector */}
+                        <div className="bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm flex gap-1">
+                            {(['DIRECT', 'FRIENDLY', 'AUTHORITATIVE'] as Tone[]).map(t => (
+                                <button
+                                    key={t}
+                                    onClick={() => handleToneChange(t)}
+                                    className={`px-3 py-1.5 text-[10px] font-semibold rounded-md transition-all ${tone === t ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                                >
+                                    {t}
+                                </button>
+                            ))}
+                        </div>
+
                         {/* Usage Meter */}
                         <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm w-full md:w-64">
                             <div className="flex justify-between items-center mb-1">

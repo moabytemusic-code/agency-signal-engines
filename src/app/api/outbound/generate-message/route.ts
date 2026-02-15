@@ -5,19 +5,20 @@ import {
     generateLinkedInConnectMessage,
     generateLinkedInFollowupMessage,
     generateColdEmailMessage,
-    generateFollowupEmail
+    generateFollowupEmail,
+    Tone
 } from "@/lib/outboundMessages";
 
-// Type definition for POST request body
 interface GenerateMessageRequest {
     prospect_id: string;
     type: 'connect' | 'linkedin_followup' | 'email_initial' | 'email_followup';
+    tone?: Tone;
 }
 
 export async function POST(req: NextRequest) {
     try {
         const body: GenerateMessageRequest = await req.json();
-        const { prospect_id, type } = body;
+        const { prospect_id, type, tone = "DIRECT" } = body;
 
         if (!prospect_id || !type) {
             return new NextResponse("Missing prospect_id or type", { status: 400 });
@@ -37,24 +38,34 @@ export async function POST(req: NextRequest) {
             return new NextResponse("Prospect not found", { status: 404 });
         }
 
+        // Fetch sender profile
+        const { data: profile } = await supabase
+            .from("profiles")
+            .select("display_name")
+            .eq("user_id", prospect.owner_user_id)
+            .single();
+
+        const senderName = profile?.display_name || "Ken";
+
         const firstName = prospect.name.split(" ")[0] || prospect.name;
         const niche = prospect.niche || "";
         const company = prospect.company || "your agency";
 
         let message = "";
+        const opts = { firstName, company, niche, senderName, tone };
 
         switch (type) {
             case 'connect':
-                message = generateLinkedInConnectMessage(niche, firstName);
+                message = generateLinkedInConnectMessage(opts);
                 break;
             case 'linkedin_followup':
-                message = generateLinkedInFollowupMessage(niche, firstName);
+                message = generateLinkedInFollowupMessage(opts);
                 break;
             case 'email_initial':
-                message = generateColdEmailMessage(niche, firstName, company);
+                message = generateColdEmailMessage(opts);
                 break;
             case 'email_followup':
-                message = generateFollowupEmail(niche, firstName);
+                message = generateFollowupEmail(opts);
                 break;
             default:
                 return new NextResponse("Invalid message type", { status: 400 });
