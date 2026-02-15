@@ -10,6 +10,7 @@ export interface ClientState {
         profit: number;
         script: number;
         seo: number;
+        outbound_email: number;
     };
 }
 
@@ -29,11 +30,11 @@ export function getClientUsage(): Usage {
     const limits = getPlanLimits(plan);
 
     if (typeof window === "undefined") {
-        return { profit: 0, script: 0, seo: 0, limits };
+        return { profit: 0, script: 0, seo: 0, outbound_email: 0, limits };
     }
 
     const storedUsage = localStorage.getItem(KEY_USAGE);
-    let currentUsage = { profit: 0, script: 0, seo: 0 };
+    let currentUsage = { profit: 0, script: 0, seo: 0, outbound_email: 0 };
 
     if (storedUsage) {
         try {
@@ -53,17 +54,17 @@ export function incrementUsage(moduleKey: "profit" | "script" | "seo") {
     if (typeof window === "undefined") return;
 
     const current = getClientUsage();
-    const newUsage = {
-        profit: current.profit,
+    profit: current.profit,
         script: current.script,
-        seo: current.seo,
+            seo: current.seo,
+                outbound_email: current.outbound_email,
     };
 
-    newUsage[moduleKey] += 1;
-    localStorage.setItem(KEY_USAGE, JSON.stringify(newUsage));
+newUsage[moduleKey] += 1;
+localStorage.setItem(KEY_USAGE, JSON.stringify(newUsage));
 }
 
 export function resetUsage() {
     if (typeof window === "undefined") return;
-    localStorage.setItem(KEY_USAGE, JSON.stringify({ profit: 0, script: 0, seo: 0 }));
+    localStorage.setItem(KEY_USAGE, JSON.stringify({ profit: 0, script: 0, seo: 0, outbound_email: 0 }));
 }
