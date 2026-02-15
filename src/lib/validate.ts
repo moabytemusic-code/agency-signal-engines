@@ -39,13 +39,15 @@ export function validateEnvelope(
             error: {
                 code: "BAD_REQUEST",
                 message: "Envelope malformed",
-                fields: {
-                    request_id: !body.request_id ? "Missing" : undefined,
-                    module: !body.module ? "Missing" : undefined,
-                    user: !body.user ? "Missing" : undefined,
-                    usage: !body.usage ? "Missing" : undefined,
-                    input: !body.input ? "Missing" : undefined,
-                },
+                fields: (() => {
+                    const f: Record<string, string> = {};
+                    if (!body.request_id) f.request_id = "Missing";
+                    if (!body.module) f.module = "Missing";
+                    if (!body.user) f.user = "Missing";
+                    if (!body.usage) f.usage = "Missing";
+                    if (!body.input) f.input = "Missing";
+                    return f;
+                })(),
             },
         };
     }
