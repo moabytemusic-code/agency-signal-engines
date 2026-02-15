@@ -16,6 +16,6 @@ export function buildEnvelope<T>(module: ModuleType, input: T): RequestEnvelope 
             plan: plan,
         },
         usage: usage,
-        input: input,
+        input: input as any,
     };
 }
