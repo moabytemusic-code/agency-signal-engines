@@ -48,6 +48,7 @@ export default function OutboundDashboard() {
 
     // Tone State
     const [tone, setTone] = useState<Tone>("DIRECT");
+    const [displayName, setDisplayName] = useState("Ken");
 
     const [messageModal, setMessageModal] = useState<{ isOpen: boolean, prospect: Prospect | null, content: string, type: string }>({
         isOpen: false, prospect: null, content: "", type: ""
@@ -102,6 +103,14 @@ export default function OutboundDashboard() {
             limit: limits.outbound_email,
             plan
         });
+
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('display_name')
+            .eq('user_id', user.id)
+            .single();
+
+        if (profile?.display_name) setDisplayName(profile.display_name);
 
         setLoading(false);
     };
@@ -293,228 +302,230 @@ export default function OutboundDashboard() {
                     <div className="flex flex-col md:flex-row gap-6 items-end md:items-center w-full md:w-auto">
 
                         {/* Tone Selector */}
-                        <div className="bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm flex gap-1">
-                            {(['DIRECT', 'FRIENDLY', 'AUTHORITATIVE'] as Tone[]).map(t => (
-                                <button
-                                    key={t}
-                                    onClick={() => handleToneChange(t)}
-                                    className={`px-3 py-1.5 text-[10px] font-semibold rounded-md transition-all ${tone === t ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
-                                >
-                                    {t}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Usage Meter */}
-                        <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm w-full md:w-64">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-xs font-semibold text-slate-600">Email Sends</span>
-                                <span className={`text-xs font-bold ${isLimitReached ? "text-red-500" : "text-slate-900"}`}>
-                                    {usage.used} / {usage.limit}
-                                </span>
+                        <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] text-slate-400 font-medium mr-1">Sender: <span className="text-slate-600">{displayName}</span></span>
+                            <div className="bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm flex gap-1">
+                                {(['DIRECT', 'FRIENDLY', 'AUTHORITATIVE'] as Tone[]).map(t => (
+                                    <button
+                                        key={t}
+                                        onClick={() => handleToneChange(t)}
+                                        className={`px-3 py-1.5 text-[10px] font-semibold rounded-md transition-all ${tone === t ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}`}
+                                    >
+                                        {t}
+                                    </button>
+                                ))}
                             </div>
-                            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                                <div
-                                    className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? "bg-red-500" : "bg-blue-500"}`}
-                                    style={{ width: `${usagePercent}%` }}
-                                ></div>
-                            </div>
-                            {isLimitReached && (
-                                <Link href="/pricing" className="text-[10px] text-blue-600 hover:underline mt-1 block text-right">
-                                    Upgrade Plan
-                                </Link>
-                            )}
-                        </div>
 
-                        <Link href="/dashboard/outbound/new" className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
-                            <Plus className="h-4 w-4" /> Add Prospect
-                        </Link>
+                            {/* Usage Meter */}
+                            <div className="bg-white px-4 py-2 rounded-lg border border-slate-200 shadow-sm w-full md:w-64">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-xs font-semibold text-slate-600">Email Sends</span>
+                                    <span className={`text-xs font-bold ${isLimitReached ? "text-red-500" : "text-slate-900"}`}>
+                                        {usage.used} / {usage.limit}
+                                    </span>
+                                </div>
+                                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${isLimitReached ? "bg-red-500" : "bg-blue-500"}`}
+                                        style={{ width: `${usagePercent}%` }}
+                                    ></div>
+                                </div>
+                                {isLimitReached && (
+                                    <Link href="/pricing" className="text-[10px] text-blue-600 hover:underline mt-1 block text-right">
+                                        Upgrade Plan
+                                    </Link>
+                                )}
+                            </div>
+
+                            <Link href="/dashboard/outbound/new" className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap">
+                                <Plus className="h-4 w-4" /> Add Prospect
+                            </Link>
+                        </div>
+                    </div>
+
+                    {/* Follow-Ups Section */}
+                    {dueFollowUps.length > 0 && (
+                        <div className="mb-12 bg-white border border-yellow-200 rounded-xl p-6 shadow-sm ring-1 ring-yellow-400/20">
+                            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                                <Calendar className="h-5 w-5 text-yellow-600" />
+                                Today's Follow-Ups
+                                <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">{dueFollowUps.length} due</span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {dueFollowUps.map(p => (
+                                    <div key={p.id} className="border border-slate-100 rounded-lg p-4 bg-slate-50 flex justify-between items-center group hover:border-blue-200 transition-colors">
+                                        <div>
+                                            <div className="font-semibold text-slate-900">{p.name}</div>
+                                            <div className="text-xs text-slate-500">{p.company}</div>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => handleGenerate(p, 'email_followup')}
+                                                className="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors"
+                                            >
+                                                Send Follow-Up
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Kanban Board */}
+                    <div className="flex overflow-x-auto pb-8 gap-6 snap-x">
+                        {STATUS_COLUMNS.map(col => {
+                            const colProspects = prospects.filter(p => p.status === col.id);
+                            return (
+                                <div key={col.id} className={`flex-none w-80 rounded-xl border ${col.color} bg-opacity-30 flex flex-col h-full min-h-[500px] snap-center`}>
+                                    <div className="p-4 border-b border-inherit font-semibold text-slate-700 flex justify-between items-center bg-white/50 rounded-t-xl">
+                                        {col.label}
+                                        <span className="text-xs text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100">{colProspects.length}</span>
+                                    </div>
+                                    <div className="p-4 space-y-3 flex-1 overflow-y-auto bg-slate-50/50">
+                                        {colProspects.map(p => (
+                                            <div key={p.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow group relative">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h3 className="font-semibold text-slate-900 truncate pr-2 max-w-[150px]">{p.name}</h3>
+                                                        <p className="text-xs text-slate-500 truncate max-w-[150px]">{p.company}</p>
+                                                    </div>
+                                                    <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ${p.source === 'linkedin' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
+                                                        {p.source === 'linkedin' ? 'LI' : 'EM'}
+                                                    </span>
+                                                </div>
+
+                                                <div className="mt-2 text-xs text-slate-400 flex justify-between items-center">
+                                                    <span>Status</span>
+                                                    <button onClick={() => handleViewLogs(p)} className="hover:text-blue-600 flex items-center gap-1">
+                                                        <History className="h-3 w-3" /> Logs
+                                                    </button>
+                                                </div>
+
+                                                <select
+                                                    className="w-full mt-1 text-xs border border-slate-200 rounded px-2 py-1.5 bg-slate-50 text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                    value={p.status}
+                                                    onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                                                >
+                                                    {STATUS_COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                                    <option value="not_interested">Not Interested</option>
+                                                </select>
+
+                                                {/* Action Row */}
+                                                <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleGenerate(p, 'email_initial')}
+                                                            className="flex-1 text-[10px] py-1.5 px-2 bg-slate-50 border border-slate-200 text-slate-600 rounded hover:bg-white hover:border-slate-300 transition-colors"
+                                                        >
+                                                            Gen Initial
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleGenerate(p, 'email_followup')}
+                                                            className="flex-1 text-[10px] py-1.5 px-2 bg-slate-50 border border-slate-200 text-slate-600 rounded hover:bg-white hover:border-slate-300 transition-colors"
+                                                        >
+                                                            Gen Followup
+                                                        </button>
+                                                    </div>
+
+                                                    {p.email && (
+                                                        <button
+                                                            onClick={() => handleQuickSend(p)}
+                                                            disabled={sending || isLimitReached}
+                                                            className="w-full text-xs font-semibold text-white bg-blue-600 rounded py-1.5 hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-300 flex justify-center items-center gap-2 transition-all shadow-sm"
+                                                        >
+                                                            <Zap className="h-3 w-3 fill-current" />
+                                                            Send Email
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                {/* Follow-Ups Section */}
-                {dueFollowUps.length > 0 && (
-                    <div className="mb-12 bg-white border border-yellow-200 rounded-xl p-6 shadow-sm ring-1 ring-yellow-400/20">
-                        <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                            <Calendar className="h-5 w-5 text-yellow-600" />
-                            Today's Follow-Ups
-                            <span className="bg-yellow-100 text-yellow-700 text-xs px-2 py-0.5 rounded-full">{dueFollowUps.length} due</span>
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {dueFollowUps.map(p => (
-                                <div key={p.id} className="border border-slate-100 rounded-lg p-4 bg-slate-50 flex justify-between items-center group hover:border-blue-200 transition-colors">
-                                    <div>
-                                        <div className="font-semibold text-slate-900">{p.name}</div>
-                                        <div className="text-xs text-slate-500">{p.company}</div>
+                {/* Message Modal */}
+                {messageModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800">Generated Message</h3>
+                                <button onClick={() => setMessageModal({ ...messageModal, isOpen: false })} className="text-slate-400 hover:text-slate-600">
+                                    <XCircle className="h-5 w-5" />
+                                </button>
+                            </div>
+                            <div className="p-6">
+                                <textarea
+                                    readOnly
+                                    className="w-full h-64 p-4 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 font-mono text-sm focus:outline-none resize-none mb-4"
+                                    value={messageModal.content}
+                                />
+                                <div className="flex justify-between items-center gap-3">
+                                    <div className="text-xs text-slate-400">
+                                        Type: <span className="font-medium text-slate-600">{messageModal.type}</span>
                                     </div>
                                     <div className="flex gap-2">
                                         <button
-                                            onClick={() => handleGenerate(p, 'email_followup')}
-                                            className="text-xs font-medium text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors"
+                                            onClick={copyToClipboard}
+                                            className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-2"
                                         >
-                                            Send Follow-Up
+                                            <Copy className="h-4 w-4" /> Copy
                                         </button>
+                                        {messageModal.type.startsWith('email') && messageModal.prospect?.email && (
+                                            <button
+                                                onClick={handleSendEmailModal}
+                                                disabled={sending || isLimitReached}
+                                                className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center gap-2 shadow-sm disabled:opacity-50 ${isLimitReached ? "bg-slate-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+                                                title={isLimitReached ? "Monthly Limit Reached" : ""}
+                                            >
+                                                <Send className="h-4 w-4" />
+                                                {sending ? "Sending..." : "Send via Brevo"}
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
-                            ))}
+                                {isLimitReached && messageModal.type.startsWith('email') && (
+                                    <p className="text-xs text-red-500 mt-2 text-right">Monthly email limit reached.</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
 
-                {/* Kanban Board */}
-                <div className="flex overflow-x-auto pb-8 gap-6 snap-x">
-                    {STATUS_COLUMNS.map(col => {
-                        const colProspects = prospects.filter(p => p.status === col.id);
-                        return (
-                            <div key={col.id} className={`flex-none w-80 rounded-xl border ${col.color} bg-opacity-30 flex flex-col h-full min-h-[500px] snap-center`}>
-                                <div className="p-4 border-b border-inherit font-semibold text-slate-700 flex justify-between items-center bg-white/50 rounded-t-xl">
-                                    {col.label}
-                                    <span className="text-xs text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-100">{colProspects.length}</span>
-                                </div>
-                                <div className="p-4 space-y-3 flex-1 overflow-y-auto bg-slate-50/50">
-                                    {colProspects.map(p => (
-                                        <div key={p.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow group relative">
-                                            <div className="flex justify-between items-start mb-2">
-                                                <div>
-                                                    <h3 className="font-semibold text-slate-900 truncate pr-2 max-w-[150px]">{p.name}</h3>
-                                                    <p className="text-xs text-slate-500 truncate max-w-[150px]">{p.company}</p>
-                                                </div>
-                                                <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ${p.source === 'linkedin' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
-                                                    {p.source === 'linkedin' ? 'LI' : 'EM'}
-                                                </span>
-                                            </div>
-
-                                            <div className="mt-2 text-xs text-slate-400 flex justify-between items-center">
-                                                <span>Status</span>
-                                                <button onClick={() => handleViewLogs(p)} className="hover:text-blue-600 flex items-center gap-1">
-                                                    <History className="h-3 w-3" /> Logs
-                                                </button>
-                                            </div>
-
-                                            <select
-                                                className="w-full mt-1 text-xs border border-slate-200 rounded px-2 py-1.5 bg-slate-50 text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
-                                                value={p.status}
-                                                onChange={(e) => handleStatusChange(p.id, e.target.value)}
-                                            >
-                                                {STATUS_COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                                <option value="not_interested">Not Interested</option>
-                                            </select>
-
-                                            {/* Action Row */}
-                                            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleGenerate(p, 'email_initial')}
-                                                        className="flex-1 text-[10px] py-1.5 px-2 bg-slate-50 border border-slate-200 text-slate-600 rounded hover:bg-white hover:border-slate-300 transition-colors"
-                                                    >
-                                                        Gen Initial
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleGenerate(p, 'email_followup')}
-                                                        className="flex-1 text-[10px] py-1.5 px-2 bg-slate-50 border border-slate-200 text-slate-600 rounded hover:bg-white hover:border-slate-300 transition-colors"
-                                                    >
-                                                        Gen Followup
-                                                    </button>
-                                                </div>
-
-                                                {p.email && (
-                                                    <button
-                                                        onClick={() => handleQuickSend(p)}
-                                                        disabled={sending || isLimitReached}
-                                                        className="w-full text-xs font-semibold text-white bg-blue-600 rounded py-1.5 hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-300 flex justify-center items-center gap-2 transition-all shadow-sm"
-                                                    >
-                                                        <Zap className="h-3 w-3 fill-current" />
-                                                        Send Email
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                {/* History Modal */}
+                {historyModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                            <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+                                <h3 className="font-bold text-slate-800">History: {historyModal.prospect?.name}</h3>
+                                <button onClick={() => setHistoryModal({ ...historyModal, isOpen: false })} className="text-slate-400 hover:text-slate-600">
+                                    <XCircle className="h-5 w-5" />
+                                </button>
                             </div>
-                        );
-                    })}
-                </div>
+                            <div className="p-0 max-h-[400px] overflow-y-auto">
+                                {historyModal.logs.length === 0 ? (
+                                    <div className="p-8 text-center text-slate-500 text-sm">No emails sent yet.</div>
+                                ) : (
+                                    <div className="divide-y divide-slate-100">
+                                        {historyModal.logs.map(log => (
+                                            <div key={log.id} className="p-4 hover:bg-slate-50">
+                                                <div className="flex justify-between items-center mb-1">
+                                                    <span className="font-semibold text-xs text-blue-600 uppercase tracking-wide">{log.type}</span>
+                                                    <span className="text-xs text-slate-400">{new Date(log.sent_at).toLocaleDateString()} {new Date(log.sent_at).toLocaleTimeString()}</span>
+                                                </div>
+                                                <div className="text-sm font-medium text-slate-800 mb-1">{log.subject}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-
-            {/* Message Modal */}
-            {messageModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800">Generated Message</h3>
-                            <button onClick={() => setMessageModal({ ...messageModal, isOpen: false })} className="text-slate-400 hover:text-slate-600">
-                                <XCircle className="h-5 w-5" />
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            <textarea
-                                readOnly
-                                className="w-full h-64 p-4 border border-slate-200 rounded-lg bg-slate-50 text-slate-800 font-mono text-sm focus:outline-none resize-none mb-4"
-                                value={messageModal.content}
-                            />
-                            <div className="flex justify-between items-center gap-3">
-                                <div className="text-xs text-slate-400">
-                                    Type: <span className="font-medium text-slate-600">{messageModal.type}</span>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={copyToClipboard}
-                                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 border border-slate-200 rounded-lg flex items-center gap-2"
-                                    >
-                                        <Copy className="h-4 w-4" /> Copy
-                                    </button>
-                                    {messageModal.type.startsWith('email') && messageModal.prospect?.email && (
-                                        <button
-                                            onClick={handleSendEmailModal}
-                                            disabled={sending || isLimitReached}
-                                            className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center gap-2 shadow-sm disabled:opacity-50 ${isLimitReached ? "bg-slate-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
-                                            title={isLimitReached ? "Monthly Limit Reached" : ""}
-                                        >
-                                            <Send className="h-4 w-4" />
-                                            {sending ? "Sending..." : "Send via Brevo"}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                            {isLimitReached && messageModal.type.startsWith('email') && (
-                                <p className="text-xs text-red-500 mt-2 text-right">Monthly email limit reached.</p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* History Modal */}
-            {historyModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center">
-                            <h3 className="font-bold text-slate-800">History: {historyModal.prospect?.name}</h3>
-                            <button onClick={() => setHistoryModal({ ...historyModal, isOpen: false })} className="text-slate-400 hover:text-slate-600">
-                                <XCircle className="h-5 w-5" />
-                            </button>
-                        </div>
-                        <div className="p-0 max-h-[400px] overflow-y-auto">
-                            {historyModal.logs.length === 0 ? (
-                                <div className="p-8 text-center text-slate-500 text-sm">No emails sent yet.</div>
-                            ) : (
-                                <div className="divide-y divide-slate-100">
-                                    {historyModal.logs.map(log => (
-                                        <div key={log.id} className="p-4 hover:bg-slate-50">
-                                            <div className="flex justify-between items-center mb-1">
-                                                <span className="font-semibold text-xs text-blue-600 uppercase tracking-wide">{log.type}</span>
-                                                <span className="text-xs text-slate-400">{new Date(log.sent_at).toLocaleDateString()} {new Date(log.sent_at).toLocaleTimeString()}</span>
-                                            </div>
-                                            <div className="text-sm font-medium text-slate-800 mb-1">{log.subject}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-        </div>
-    );
+            );
 }

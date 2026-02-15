@@ -24,6 +24,13 @@ export default async function DashboardHub() {
     const plan = await getUserPlan(user.id);
     const limits = getPlanLimits(plan);
 
+    // Fetch Profile
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .single();
+
     // Get Usage for current month
     const now = new Date();
     const period = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
@@ -57,6 +64,9 @@ export default async function DashboardHub() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Agency SignalEngines</h1>
                         <p className="text-gray-500 text-sm">Deterministic Growth Tools for Agencies</p>
+                        <p className="text-gray-400 text-xs mt-1">
+                            Signed in as <span className="font-semibold text-gray-700">{profile?.display_name || user.email?.split('@')[0]}</span>
+                        </p>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="flex flex-col items-end mr-4">
