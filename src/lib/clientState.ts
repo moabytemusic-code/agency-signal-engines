@@ -50,18 +50,19 @@ export function getClientUsage(): Usage {
     };
 }
 
-export function incrementUsage(moduleKey: "profit" | "script" | "seo") {
+export function incrementUsage(moduleKey: "profit" | "script" | "seo" | "outbound_email") {
     if (typeof window === "undefined") return;
 
     const current = getClientUsage();
-    profit: current.profit,
+    const newUsage = {
+        profit: current.profit,
         script: current.script,
-            seo: current.seo,
-                outbound_email: current.outbound_email,
+        seo: current.seo,
+        outbound_email: current.outbound_email,
     };
 
-newUsage[moduleKey] += 1;
-localStorage.setItem(KEY_USAGE, JSON.stringify(newUsage));
+    newUsage[moduleKey] += 1;
+    localStorage.setItem(KEY_USAGE, JSON.stringify(newUsage));
 }
 
 export function resetUsage() {
