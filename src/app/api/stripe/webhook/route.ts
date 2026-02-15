@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe, PRICE_PLAN_MAP, PLAN_PRICE_MAP } from "@/lib/stripe";
-import { createServiceClient } from "@/lib/supabase/service"; // Service client for all DB ops
+import { stripe, PRICE_PLAN_MAP } from "@/lib/stripe";
+import { createServiceClient } from "@/lib/supabase/service";
 
-// Stripe needs raw body for signature verification
 // Note: App Router uses req.text() so we don't need bodyParser config
 
 export async function POST(req: NextRequest) {
     const signature = req.headers.get("stripe-signature");
-    const rawBody = await req.text(); // Next.js App Router gives raw body via .text()
+    const rawBody = await req.text();
 
     if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
         return new NextResponse("Missing signature or secret", { status: 400 });
@@ -25,7 +24,7 @@ export async function POST(req: NextRequest) {
         return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
-    const supabase = createServiceClient(); // Actually the SERVICE client from lib/supabase/service
+    const supabase = createServiceClient();
 
     // 1. Idempotency Check
     const { data: existingEvent } = await supabase
@@ -109,7 +108,7 @@ async function handleCheckout(session: any, supabase: any) {
 async function handleSubscriptionUpdate(subscription: any, supabase: any, type: string) {
     const customerId = subscription.customer;
     const status = subscription.status; // active, past_due, canceled, incomplete
-    const priceId = subscription.items.data[0]?.price.id; // Could be missing if fully deleted?
+    const priceId = subscription.items.data[0]?.price.id;
 
     // Find user by stripe_customer_id
     const { data: userSub } = await supabase
@@ -135,8 +134,6 @@ async function handleSubscriptionUpdate(subscription: any, supabase: any, type: 
 
     // Update Plan + Status
     const plan = PRICE_PLAN_MAP[priceId || ""] || "FREE";
-    // Only set plan if active/trialing. If past_due, keep plan but mark status (app logic handles restriction)
-    // Actually, user requested strict enforcement.
     const effectivePlan = (status === "active" || status === "trialing") ? plan : "FREE";
 
     await supabase.from("subscriptions").update({
@@ -151,20 +148,10 @@ async function handleSubscriptionUpdate(subscription: any, supabase: any, type: 
 }
 
 async function handleInvoicePaid(invoice: any, supabase: any) {
-    // If subscription invoice paid successfully, ensure status is active
-    /*
-      In 'invoice.payment_succeeded', the object IS the invoice.
-      This event usually fires for recurring payments.
-      We can use it to re-activate a past_due subscription if needed, 
-      although 'customer.subscription.updated' usually handles status changes too.
-      We'll just log or double-confirm status here.
-    */
     const subscriptionId = invoice.subscription;
     if (!subscriptionId) return;
 
-    // Optionally fetch latest sub status to confirm
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
     await handleSubscriptionUpdate(subscription, supabase, 'customer.subscription.updated');
 }
 
@@ -172,7 +159,6 @@ async function handleInvoiceFailed(invoice: any, supabase: any) {
     const subscriptionId = invoice.subscription;
     if (!subscriptionId) return;
 
-    // Subscription status likely changed to past_due contentiously
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
     await handleSubscriptionUpdate(subscription, supabase, 'customer.subscription.updated');
 }
