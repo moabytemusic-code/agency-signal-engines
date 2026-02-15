@@ -4,6 +4,16 @@ import { createServiceClient } from "@/lib/supabase/service";
 
 // Note: App Router uses req.text() so we don't need bodyParser config
 
+function safeDate(val: any): string {
+    if (!val) return new Date().toISOString();
+    if (typeof val === 'number') return new Date(val * 1000).toISOString();
+    if (typeof val === 'string') {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) return d.toISOString();
+    }
+    return new Date().toISOString();
+}
+
 export async function POST(req: NextRequest) {
     const signature = req.headers.get("stripe-signature");
     const rawBody = await req.text();
@@ -24,15 +34,6 @@ export async function POST(req: NextRequest) {
         return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
-    function safeDate(val: any): string {
-        if (!val) return new Date().toISOString();
-        if (typeof val === 'number') return new Date(val * 1000).toISOString();
-        if (typeof val === 'string') {
-            const d = new Date(val);
-            if (!isNaN(d.getTime())) return d.toISOString();
-        }
-        return new Date().toISOString();
-    }
 
     const supabase = createServiceClient();
 
