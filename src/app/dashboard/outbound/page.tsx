@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import Link from "next/link";
-import { Plus, MessageSquare, Calendar, CheckCircle, XCircle, MoreHorizontal, Copy, Send, History } from "lucide-react";
+import { Plus, MessageSquare, Calendar, CheckCircle, XCircle, MoreHorizontal, Copy, Send, History, Zap } from "lucide-react";
 import { getPlanLimits, PLAN_LIMITS } from "@/lib/plans";
 import { Plan } from "@/lib/types";
 
@@ -84,14 +84,11 @@ export default function OutboundDashboard() {
             .eq('user_id', user.id)
             .single();
 
-        // Logic similar to billingUsage but client-side simplified
         let plan = (sub?.plan || 'FREE') as Plan;
         if (sub?.stripe_status && sub?.stripe_status !== 'active' && sub?.stripe_status !== 'trialing') {
             plan = 'FREE';
         }
 
-        // Explicitly import limits logic
-        // Using PLAN_LIMITS directly as getPlanLimits is just a lookup
         const limits = PLAN_LIMITS[plan] || PLAN_LIMITS['FREE'];
 
         setUsage({
@@ -109,7 +106,6 @@ export default function OutboundDashboard() {
 
     // Update Status
     const handleStatusChange = async (prospectId: string, newStatus: string) => {
-        // Optimistic Update
         const oldProspects = [...prospects];
         const updatedProspects = prospects.map(p =>
             p.id === prospectId ? { ...p, status: newStatus as any } : p
@@ -135,12 +131,12 @@ export default function OutboundDashboard() {
 
         if (error) {
             console.error("Status update failed", error);
-            setProspects(oldProspects); // Revert
+            setProspects(oldProspects);
             alert("Failed to update status");
         }
     };
 
-    // Generate Message
+    // Generate Message (Opens Modal)
     const handleGenerate = async (prospect: Prospect, forceType?: string) => {
         setGenerating(true);
         let type = forceType || 'email_initial';
@@ -159,7 +155,7 @@ export default function OutboundDashboard() {
             const res = await fetch("/api/outbound/generate-message", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prospect_id: prospect.id, type }) // Note: API expects 'type'
+                body: JSON.stringify({ prospect_id: prospect.id, type })
             });
 
             if (!res.ok) throw new Error("Generation failed");
@@ -175,50 +171,76 @@ export default function OutboundDashboard() {
         }
     };
 
-    // Send Email via Brevo
-    const handleSendEmail = async () => {
-        if (!messageModal.prospect || !messageModal.type.startsWith('email')) return;
+    // Shared Send Function
+    const sendEmailAPI = async (prospectId: string, type: string) => {
+        const res = await fetch("/api/outbound/send-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ prospect_id: prospectId, type })
+        });
 
-        // Check limit client-side for UX
+        if (!res.ok) {
+            const err = await res.json();
+            if (err.code === 'LIMIT_EXCEEDED') {
+                alert(`Limit Exceeded: You've used ${err.used} / ${err.limit} emails.`);
+            } else {
+                alert(`Failed to send email: ${err.error || 'Unknown error'}`);
+            }
+            throw new Error(err.message);
+        }
+    };
+
+    // Send Email via Modal
+    const handleSendEmailModal = async () => {
+        if (!messageModal.prospect || !messageModal.type.startsWith('email')) return;
         if (usage.used >= usage.limit) {
-            alert(`You have reached your monthly limit of ${usage.limit} emails. Please upgrade to send more.`);
+            alert(`Limit reached. Upgrade to send more.`);
             return;
         }
 
         setSending(true);
         try {
-            const res = await fetch("/api/outbound/send-email", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    prospect_id: messageModal.prospect.id,
-                    type: messageModal.type // 'email_initial' or 'email_followup'
-                })
-            });
-
-            if (!res.ok) {
-                const err = await res.json();
-                if (err.code === 'LIMIT_EXCEEDED') {
-                    alert(`Limit Exceeded: You've used ${err.used} / ${err.limit} emails.`);
-                } else {
-                    alert(`Failed to send email: ${err.error || 'Unknown error'}`);
-                }
-                throw new Error(err.message);
-            }
-
+            await sendEmailAPI(messageModal.prospect.id, messageModal.type);
             alert("Email sent via Brevo!");
             setMessageModal({ ...messageModal, isOpen: false });
-            fetchData(); // Refresh to update usage meter and logs
-
-        } catch (e: any) {
-            console.error(e);
-            // Error already alerted
+            fetchData();
+        } catch (e) {
+            // Already alerted
         } finally {
             setSending(false);
         }
     };
 
-    // View Logs
+    // Quick Send from Card
+    const handleQuickSend = async (prospect: Prospect) => {
+        if (usage.used >= usage.limit) {
+            alert(`Limit reached. Upgrade to send more.`);
+            return;
+        }
+
+        // Determine smart type
+        let type = 'email_initial';
+        if (prospect.followup_due_at && new Date(prospect.followup_due_at) <= new Date()) {
+            type = 'email_followup';
+        } else if (['messaged'].includes(prospect.status)) {
+            type = 'email_followup';
+        }
+
+        if (!confirm(`Are you sure you want to send a '${type}' email to ${prospect.email}?`)) return;
+
+        setSending(true);
+        try {
+            await sendEmailAPI(prospect.id, type);
+            // Inline success feedback? Alert implies success
+            alert(`Email sent successfully to ${prospect.name}!`);
+            fetchData(); // Refresh usage and list
+        } catch (e) {
+            // Alerted in helper
+        } finally {
+            setSending(false);
+        }
+    };
+
     const handleViewLogs = async (prospect: Prospect) => {
         const { data } = await supabase
             .from("outbound_logs")
@@ -234,7 +256,6 @@ export default function OutboundDashboard() {
         alert("Copied directly to clipboard!");
     };
 
-    // Filter for Follow-Ups
     const dueFollowUps = prospects.filter(p => {
         if (!p.followup_due_at) return false;
         const due = new Date(p.followup_due_at);
@@ -250,7 +271,7 @@ export default function OutboundDashboard() {
     return (
         <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
             <div className="max-w-7xl mx-auto">
-                {/* Header + Meter */}
+                {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                     <div>
                         <h1 className="text-3xl font-bold text-slate-900">Outbound Engine</h1>
@@ -328,39 +349,58 @@ export default function OutboundDashboard() {
                                     {colProspects.map(p => (
                                         <div key={p.id} className="bg-white p-4 rounded-lg shadow-sm border border-slate-200 hover:shadow-md transition-shadow group relative">
                                             <div className="flex justify-between items-start mb-2">
-                                                <h3 className="font-semibold text-slate-900 truncate pr-2">{p.name}</h3>
+                                                <div>
+                                                    <h3 className="font-semibold text-slate-900 truncate pr-2 max-w-[150px]">{p.name}</h3>
+                                                    <p className="text-xs text-slate-500 truncate max-w-[150px]">{p.company}</p>
+                                                </div>
                                                 <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold tracking-wider ${p.source === 'linkedin' ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}>
                                                     {p.source === 'linkedin' ? 'LI' : 'EM'}
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-slate-600 mb-3 truncate">{p.company}</p>
 
-                                            <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-50">
-                                                <select
-                                                    className="text-xs border border-slate-200 rounded px-2 py-1 bg-slate-50 text-slate-600 focus:ring-1 focus:ring-blue-500 outline-none max-w-[100px]"
-                                                    value={p.status}
-                                                    onChange={(e) => handleStatusChange(p.id, e.target.value)}
-                                                >
-                                                    {STATUS_COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                                                    <option value="not_interested">Not Interested</option>
-                                                </select>
+                                            <div className="mt-2 text-xs text-slate-400 flex justify-between items-center">
+                                                <span>Status</span>
+                                                <button onClick={() => handleViewLogs(p)} className="hover:text-blue-600 flex items-center gap-1">
+                                                    <History className="h-3 w-3" /> Logs
+                                                </button>
+                                            </div>
 
-                                                <div className="flex items-center gap-1">
+                                            <select
+                                                className="w-full mt-1 text-xs border border-slate-200 rounded px-2 py-1.5 bg-slate-50 text-slate-700 focus:ring-1 focus:ring-blue-500 outline-none"
+                                                value={p.status}
+                                                onChange={(e) => handleStatusChange(p.id, e.target.value)}
+                                            >
+                                                {STATUS_COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                                <option value="not_interested">Not Interested</option>
+                                            </select>
+
+                                            {/* Action Row */}
+                                            <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2">
+                                                <div className="flex gap-2">
                                                     <button
-                                                        onClick={() => handleGenerate(p)}
-                                                        title="Generate Message"
-                                                        className="text-slate-400 hover:text-blue-600 transition-colors p-1"
+                                                        onClick={() => handleGenerate(p, 'email_initial')}
+                                                        className="flex-1 text-[10px] py-1.5 px-2 bg-slate-50 border border-slate-200 text-slate-600 rounded hover:bg-white hover:border-slate-300 transition-colors"
                                                     >
-                                                        <MessageSquare className="h-4 w-4" />
+                                                        Gen Initial
                                                     </button>
                                                     <button
-                                                        onClick={() => handleViewLogs(p)}
-                                                        title="History"
-                                                        className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                                                        onClick={() => handleGenerate(p, 'email_followup')}
+                                                        className="flex-1 text-[10px] py-1.5 px-2 bg-slate-50 border border-slate-200 text-slate-600 rounded hover:bg-white hover:border-slate-300 transition-colors"
                                                     >
-                                                        <History className="h-4 w-4" />
+                                                        Gen Followup
                                                     </button>
                                                 </div>
+
+                                                {p.email && (
+                                                    <button
+                                                        onClick={() => handleQuickSend(p)}
+                                                        disabled={sending || isLimitReached}
+                                                        className="w-full text-xs font-semibold text-white bg-blue-600 rounded py-1.5 hover:bg-blue-700 disabled:opacity-50 disabled:bg-slate-300 flex justify-center items-center gap-2 transition-all shadow-sm"
+                                                    >
+                                                        <Zap className="h-3 w-3 fill-current" />
+                                                        Send Email
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     ))}
@@ -400,7 +440,7 @@ export default function OutboundDashboard() {
                                     </button>
                                     {messageModal.type.startsWith('email') && messageModal.prospect?.email && (
                                         <button
-                                            onClick={handleSendEmail}
+                                            onClick={handleSendEmailModal}
                                             disabled={sending || isLimitReached}
                                             className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center gap-2 shadow-sm disabled:opacity-50 ${isLimitReached ? "bg-slate-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
                                             title={isLimitReached ? "Monthly Limit Reached" : ""}
