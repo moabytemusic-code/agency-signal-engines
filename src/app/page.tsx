@@ -31,16 +31,20 @@ export default function Home() {
       </header>
 
       <main className="flex-1">
-        {/* 1️⃣ HERO (Above Fold) */}
-        <section className="relative overflow-hidden pt-16 pb-12 sm:pt-24 sm:pb-16 text-center">
-          <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl md:text-6xl mb-6">
+        {/* 1️⃣ HERO (Above Fold) - UPDATED v1.3.2 */}
+        <section className="relative overflow-hidden pt-20 pb-16 sm:pt-32 sm:pb-24 text-center">
+          <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl md:text-6xl mb-6 leading-tight">
               Close More Clients With <br className="hidden sm:block" />
-              <span className="text-blue-600">Live Profit Modeling</span>
+              <span className="text-blue-600">Live ROI Modeling</span>
+              <br className="hidden sm:block" />
+              <span className="text-2xl sm:text-3xl text-slate-800 font-semibold block mt-4">— Built for Performance Agencies</span>
             </h1>
-            <p className="mx-auto max-w-3xl text-lg text-slate-600 mb-8 sm:text-xl leading-relaxed">
-              Forecast ROI in real time. Generate conversion-ready ads in seconds. Instantly build local SEO clusters for client upsells.
+
+            <p className="mx-auto max-w-2xl text-lg text-slate-600 mb-10 sm:text-xl leading-relaxed font-medium">
+              Forecast profitability in real time, generate conversion-ready ad scripts, and deliver SEO clusters instantly — all inside one dashboard.
             </p>
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <Link
                 href="/signup"
@@ -55,9 +59,15 @@ export default function Home() {
                 <Play className="h-4 w-4 fill-current" /> Watch 5-Minute Demo
               </Link>
             </div>
-            <p className="text-sm font-medium text-slate-500">
-              Designed for agencies running Meta, Google, and TikTok ads.
-            </p>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-slate-400">
+                No spreadsheets. No guesswork. No generic AI output.
+              </p>
+              <p className="text-xs text-slate-400">
+                Designed for agencies running Meta, Google, and TikTok ads.
+              </p>
+            </div>
           </div>
         </section>
 
