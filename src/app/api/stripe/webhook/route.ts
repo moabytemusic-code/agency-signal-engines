@@ -86,7 +86,7 @@ async function handleCheckout(session: any, supabase: any) {
     }
 
     // Retrieve subscription details to confirm plan
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
     const priceId = subscription.items.data[0].price.id;
     const plan = PRICE_PLAN_MAP[priceId] || "STARTER"; // Default or map lookup
 
@@ -151,7 +151,7 @@ async function handleInvoicePaid(invoice: any, supabase: any) {
     const subscriptionId = invoice.subscription;
     if (!subscriptionId) return;
 
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
     await handleSubscriptionUpdate(subscription, supabase, 'customer.subscription.updated');
 }
 
@@ -159,6 +159,6 @@ async function handleInvoiceFailed(invoice: any, supabase: any) {
     const subscriptionId = invoice.subscription;
     if (!subscriptionId) return;
 
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any;
     await handleSubscriptionUpdate(subscription, supabase, 'customer.subscription.updated');
 }
