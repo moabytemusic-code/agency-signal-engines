@@ -1,0 +1,22 @@
+{
+  "request_id": "req_demo_script_001",
+  "module": "AD_SCRIPT_ENGINE",
+  "user": { "user_id": "demo", "plan": "STARTER" },
+  "usage": { "profit": 0, "script": 0, "seo": 0, "limits": { "profit": 50, "script": 50, "seo": 50 } },
+  "input": {
+    "platform": "TIKTOK",
+    "industry": "Roofing",
+    "offer": {
+      "type": "SERVICE",
+      "primary_benefit": "Same-week roof inspection and clear quote",
+      "proof": "Licensed & insured",
+      "cta": "Book a free inspection"
+    },
+    "audience": {
+      "who": "Homeowners with older roofs",
+      "pain": "Leaks and storm damage worries",
+      "objection": "I don’t want pushy sales or surprise costs"
+    },
+    "style": { "tone": "AUTHORITATIVE", "length_sec": 30 }
+  }
+}
