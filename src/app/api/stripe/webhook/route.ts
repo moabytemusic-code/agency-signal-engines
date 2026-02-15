@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe, PRICE_PLAN_MAP, PLAN_PRICE_MAP } from "@/lib/stripe";
-import { createClient } from "@/lib/supabase/service"; // Service client for all DB ops
+import { createServiceClient } from "@/lib/supabase/service"; // Service client for all DB ops
 
 // Stripe needs raw body for signature verification
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+// Note: App Router uses req.text() so we don't need bodyParser config
 
 export async function POST(req: NextRequest) {
     const signature = req.headers.get("stripe-signature");
@@ -29,7 +25,7 @@ export async function POST(req: NextRequest) {
         return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
-    const supabase = createClient(); // Actually the SERVICE client from lib/supabase/service
+    const supabase = createServiceClient(); // Actually the SERVICE client from lib/supabase/service
 
     // 1. Idempotency Check
     const { data: existingEvent } = await supabase
