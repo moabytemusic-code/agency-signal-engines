@@ -24,6 +24,16 @@ export async function POST(req: NextRequest) {
         return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
+    function safeDate(val: any): string {
+        if (!val) return new Date().toISOString();
+        if (typeof val === 'number') return new Date(val * 1000).toISOString();
+        if (typeof val === 'string') {
+            const d = new Date(val);
+            if (!isNaN(d.getTime())) return d.toISOString();
+        }
+        return new Date().toISOString();
+    }
+
     const supabase = createServiceClient();
 
     // 1. Idempotency Check
@@ -98,9 +108,7 @@ async function handleCheckout(session: any, supabase: any) {
         stripe_subscription_id: subscriptionId,
         stripe_status: subscription.status,
         stripe_price_id: priceId, // Store price ID too
-        current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : new Date().toISOString(),
+        current_period_end: safeDate(subscription.current_period_end),
         updated_at: new Date().toISOString(),
     });
 
@@ -142,9 +150,7 @@ async function handleSubscriptionUpdate(subscription: any, supabase: any, type: 
         plan: effectivePlan,
         stripe_status: status,
         stripe_price_id: priceId,
-        current_period_end: subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
-            : new Date().toISOString(),
+        current_period_end: safeDate(subscription.current_period_end),
         updated_at: new Date().toISOString(),
     }).eq("user_id", userSub.user_id);
 
