@@ -98,7 +98,9 @@ async function handleCheckout(session: any, supabase: any) {
         stripe_subscription_id: subscriptionId,
         stripe_status: subscription.status,
         stripe_price_id: priceId, // Store price ID too
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : new Date().toISOString(),
         updated_at: new Date().toISOString(),
     });
 
@@ -140,7 +142,9 @@ async function handleSubscriptionUpdate(subscription: any, supabase: any, type: 
         plan: effectivePlan,
         stripe_status: status,
         stripe_price_id: priceId,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : new Date().toISOString(),
         updated_at: new Date().toISOString(),
     }).eq("user_id", userSub.user_id);
 
