@@ -50,7 +50,7 @@ export async function getOrCreateMonthlyUsage(user_id: string, period: string) {
     // If not found, create it
     const { data: newData, error: createError } = await supabase
         .from("usage_monthly_v2")
-        .insert({ user_id, period, profit: 0, script: 0, seo: 0 })
+        .insert({ user_id, period, profit: 0, script: 0, seo: 0, outbound_email_used: 0 })
         .select()
         .single();
 
@@ -74,7 +74,7 @@ export async function getOrCreateMonthlyUsage(user_id: string, period: string) {
 }
 
 export function enforceLimit(
-    moduleKey: "profit" | "script" | "seo",
+    moduleKey: "profit" | "script" | "seo" | "outbound_email",
     used: number,
     limit: number
 ) {
@@ -88,7 +88,7 @@ export function enforceLimit(
 export async function incrementUsage(
     userId: string,
     period: string,
-    moduleKey: "profit" | "script" | "seo"
+    moduleKey: "profit" | "script" | "seo" | "outbound_email"
 ) {
     const supabase = createServiceClient();
 

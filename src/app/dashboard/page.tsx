@@ -117,6 +117,13 @@ export default async function DashboardHub() {
                         remaining={limits.seo - usage.seo}
                         icon="📍"
                     />
+                    <ModuleTile
+                        title="Outbound Engine"
+                        desc="Track LinkedIn + cold email outreach pipeline."
+                        href="/dashboard/outbound"
+                        remaining={9999}
+                        icon="📫"
+                    />
                 </div>
             </div>
         </div>

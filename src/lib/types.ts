@@ -11,12 +11,14 @@ export interface Limits {
   profit: number;
   script: number;
   seo: number;
+  outbound_email: number;
 }
 
 export interface Usage {
   profit: number;
   script: number;
   seo: number;
+  outbound_email: number;
   limits: Limits;
 }
 
