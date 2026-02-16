@@ -49,6 +49,8 @@ export default function OutboundDashboard() {
     // Tone State
     const [tone, setTone] = useState<Tone>("DIRECT");
     const [displayName, setDisplayName] = useState("Ken");
+    const [company, setCompany] = useState("");
+    const [platform, setPlatform] = useState("MIXED");
 
     const [messageModal, setMessageModal] = useState<{ isOpen: boolean, prospect: Prospect | null, content: string, type: string }>({
         isOpen: false, prospect: null, content: "", type: ""
@@ -106,11 +108,15 @@ export default function OutboundDashboard() {
 
         const { data: profile } = await supabase
             .from('profiles')
-            .select('display_name')
+            .select('display_name, company_name, primary_platform')
             .eq('user_id', user.id)
             .single();
 
-        if (profile?.display_name) setDisplayName(profile.display_name);
+        if (profile) {
+            setDisplayName(profile.display_name || "Ken");
+            setCompany(profile.company_name || "");
+            setPlatform(profile.primary_platform || "MIXED");
+        }
 
         setLoading(false);
     };
@@ -303,7 +309,10 @@ export default function OutboundDashboard() {
 
                         {/* Tone Selector */}
                         <div className="flex flex-col items-end gap-1">
-                            <span className="text-[10px] text-slate-400 font-medium mr-1">Sender: <span className="text-slate-600">{displayName}</span></span>
+                            <div className="flex flex-col items-end text-[10px] text-slate-400 font-medium leading-tight">
+                                <span>Sender: <span className="text-slate-600 font-semibold">{displayName}</span>{company && <span className="text-slate-500"> ({company})</span>}</span>
+                                <span>Platform: <span className="text-slate-600 font-semibold">{platform}</span></span>
+                            </div>
                             <div className="bg-white px-2 py-1.5 rounded-lg border border-slate-200 shadow-sm flex gap-1">
                                 {(['DIRECT', 'FRIENDLY', 'AUTHORITATIVE'] as Tone[]).map(t => (
                                     <button

@@ -27,7 +27,7 @@ export default async function DashboardHub() {
     // Fetch Profile
     const { data: profile } = await supabase
         .from('profiles')
-        .select('display_name')
+        .select('display_name, company_name')
         .eq('user_id', user.id)
         .single();
 
@@ -66,6 +66,7 @@ export default async function DashboardHub() {
                         <p className="text-gray-500 text-sm">Deterministic Growth Tools for Agencies</p>
                         <p className="text-gray-400 text-xs mt-1">
                             Signed in as <span className="font-semibold text-gray-700">{profile?.display_name || user.email?.split('@')[0]}</span>
+                            {profile?.company_name && <span className="text-gray-400"> • {profile.company_name}</span>}
                         </p>
                     </div>
                     <div className="flex items-center gap-4">

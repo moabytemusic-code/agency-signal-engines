@@ -6,13 +6,15 @@ import {
     generateLinkedInFollowupMessage,
     generateColdEmailMessage,
     generateFollowupEmail,
-    Tone
+    Tone,
+    MessageOptions
 } from "@/lib/outboundMessages";
 
 interface GenerateMessageRequest {
     prospect_id: string;
     type: 'connect' | 'linkedin_followup' | 'email_initial' | 'email_followup';
     tone?: Tone;
+    platform?: string; // Optional override
 }
 
 export async function POST(req: NextRequest) {
@@ -41,18 +43,38 @@ export async function POST(req: NextRequest) {
         // Fetch sender profile
         const { data: profile } = await supabase
             .from("profiles")
-            .select("display_name")
+            .select("display_name, company_name, primary_platform")
             .eq("user_id", prospect.owner_user_id)
             .single();
 
         const senderName = profile?.display_name || "Ken";
+        const senderCompany = profile?.company_name || "";
+        const senderPlatform = profile?.primary_platform || "MIXED";
 
         const firstName = prospect.name.split(" ")[0] || prospect.name;
         const niche = prospect.niche || "";
         const company = prospect.company || "your agency";
 
+        // Determine platform: use override, or infer, or sender default
+        let platform = body.platform || senderPlatform;
+        if (!body.platform) {
+            // Very simple inference
+            const n = niche.toLowerCase();
+            if (n.includes('google') || n.includes('ppc')) platform = 'GOOGLE';
+            else if (n.includes('facebook') || n.includes('meta') || n.includes('fb')) platform = 'META';
+            else if (n.includes('tiktok') || n.includes('ugc')) platform = 'TIKTOK';
+        }
+
         let message = "";
-        const opts = { firstName, company, niche, senderName, tone };
+        const opts: MessageOptions = {
+            firstName,
+            company,
+            niche,
+            senderName,
+            senderCompany,
+            tone,
+            platform
+        };
 
         switch (type) {
             case 'connect':

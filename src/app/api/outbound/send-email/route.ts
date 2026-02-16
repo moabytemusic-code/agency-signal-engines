@@ -5,7 +5,8 @@ import { sendEmail } from "@/lib/brevo";
 import {
     generateColdEmailMessage,
     generateFollowupEmail,
-    Tone
+    Tone,
+    MessageOptions
 } from "@/lib/outboundMessages";
 import { getPeriodYYYYMM, getUserPlan, getOrCreateMonthlyUsage, incrementUsage } from "@/lib/billingUsage";
 import { getPlanLimits } from "@/lib/plans";
@@ -14,6 +15,7 @@ interface SendEmailRequest {
     prospect_id: string;
     type: 'email_initial' | 'email_followup';
     tone?: Tone;
+    platform?: string; // Optional platform override
 }
 
 export async function POST(req: NextRequest) {
@@ -44,11 +46,21 @@ export async function POST(req: NextRequest) {
         // Fetch Sender Profile
         const { data: profile } = await supabase
             .from("profiles")
-            .select("display_name")
+            .select("display_name, company_name, primary_platform")
             .eq("user_id", userId)
             .single();
 
         const senderName = profile?.display_name || "Ken";
+        const senderCompany = profile?.company_name || "";
+        const senderPlatform = profile?.primary_platform || "MIXED";
+
+        const n = (prospect.niche || "").toLowerCase();
+        let platform = body.platform || senderPlatform;
+        if (!body.platform) {
+            if (n.includes('google') || n.includes('ppc')) platform = 'GOOGLE';
+            else if (n.includes('facebook') || n.includes('meta') || n.includes('fb')) platform = 'META';
+            else if (n.includes('tiktok') || n.includes('ugc')) platform = 'TIKTOK';
+        }
 
         // --- METERING ENFORCEMENT ---
         const period = getPeriodYYYYMM();
@@ -78,7 +90,15 @@ export async function POST(req: NextRequest) {
         // Generate Content
         let subject = "";
         let bodyText = "";
-        const opts = { firstName, company, niche, senderName, tone };
+        const opts: MessageOptions = {
+            firstName,
+            company,
+            niche,
+            senderName,
+            senderCompany,
+            tone,
+            platform
+        };
 
         if (type === 'email_initial') {
             subject = "Quick ROI question";
@@ -94,15 +114,7 @@ export async function POST(req: NextRequest) {
         if (bodyText.startsWith("Subject:")) {
             const lines = bodyText.split("\n");
             // The Subject line is usually the first line. 
-            // In generateColdEmailMessage, 'Subject: ... \n\nHi...'
-            // We extract subject if it's there, but we hardcoded subject above for simplicity.
-            // If the generator returns a specific subject, we might want to parse it.
-            // For now, let's just strip the subject line from body so it doesn't appear in email body.
             if (lines[0].startsWith("Subject:")) {
-                // If it's a generated subject, maybe we should use it?
-                // The current code hardcodes "Quick ROI question".
-                // Let's stick to hardcoded or simple parsing.
-                // Assuming standard format from our generator:
                 subject = lines[0].replace("Subject: ", "").trim();
                 bodyText = lines.slice(1).join("\n").trim();
             }
