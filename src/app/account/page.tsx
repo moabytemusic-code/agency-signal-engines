@@ -99,7 +99,7 @@ export default function AccountPage() {
                                 type="text"
                                 value={email}
                                 disabled
-                                className="block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 sm:text-sm cursor-not-allowed"
+                                className="block w-full rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-gray-900 sm:text-sm cursor-not-allowed"
                             />
                         </div>
 
@@ -111,7 +111,7 @@ export default function AccountPage() {
                                 type="text"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
-                                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white text-gray-900"
                                 placeholder="Ken Driskell"
                                 required
                             />
@@ -126,7 +126,7 @@ export default function AccountPage() {
                                 type="text"
                                 value={company}
                                 onChange={(e) => setCompany(e.target.value)}
-                                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white text-gray-900"
                                 placeholder="Agency SignalEngines"
                                 required
                             />
@@ -139,7 +139,7 @@ export default function AccountPage() {
                                 id="platform"
                                 value={platform}
                                 onChange={(e) => setPlatform(e.target.value)}
-                                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white"
+                                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white text-gray-900"
                             >
                                 <option value="MIXED">Mixed / General</option>
                                 <option value="META">Meta (Facebook/IG)</option>

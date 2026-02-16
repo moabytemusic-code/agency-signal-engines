@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/browser";
 import Link from "next/link";
-import { Plus, MessageSquare, Calendar, CheckCircle, XCircle, MoreHorizontal, Copy, Send, History, Zap, Settings } from "lucide-react";
+import { Plus, MessageSquare, Calendar, CheckCircle, XCircle, MoreHorizontal, Copy, Send, History, Zap, Settings, ArrowLeft } from "lucide-react";
 import { getPlanLimits, PLAN_LIMITS } from "@/lib/plans";
 import { Plan } from "@/lib/types";
 
@@ -301,6 +301,15 @@ export default function OutboundDashboard() {
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
                     <div>
+                        <div className="flex items-center gap-3 mb-2 text-xs font-medium text-slate-400 select-none">
+                            <Link href="/dashboard" className="hover:text-slate-700 transition-colors flex items-center gap-1">
+                                <ArrowLeft className="h-3 w-3" /> Dashboard
+                            </Link>
+                            <span className="text-slate-300">/</span>
+                            <Link href="/account" className="hover:text-slate-700 transition-colors flex items-center gap-1">
+                                <Settings className="h-3 w-3" /> Account
+                            </Link>
+                        </div>
                         <h1 className="text-3xl font-bold text-slate-900">Outbound Engine</h1>
                         <p className="text-slate-500">Track LinkedIn & Email outreach pipeline.</p>
                     </div>
